@@ -1,0 +1,79 @@
+---
+title: "Praca domowa 3"
+output: 
+  html_document:
+     toc: yes
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(DT)
+library(magrittr)
+library(tidyverse)
+library(dplyr)
+library(plotly)
+```
+
+# Praca domowa
+
+Korzystając ze zbioru USJudgeRatings przygotuj dokument taki jak ten. Więcej informacji o zbiorze uzyskasz wpisując `?USJudgeRatings`.
+
+# Analiza zależności
+
+Przeanalizujemy zależność między **liczbą widzeń sędziów z adwokatami**, a oceną adwokatów **zasługiwania tych sędziów na pozostanie na stanowisku**.
+
+## Szczegółowe oceny każdego sędziego
+
+Tu np. warto zauważyć brak wyszukiwarki, ale nie jest to kluczowe do zaliczenia.
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+# a tutaj wstawiamy interaktywną tabelkę korzystając z DT::datatable()
+
+
+USJudgeRatings2 = USJudgeRatings %>%
+  tibble::rownames_to_column('Sędzia') %>%
+  tibble::as_tibble() 
+
+
+USJudgeRatings3 = USJudgeRatings2 %>% 
+  select(Sędzia, CONT, RTEN)%>% 
+  transmute(Sędzia,
+            CONT,
+            FLOOR_CONT= floor(CONT),
+            RTEN
+            )
+
+
+datatable(USJudgeRatings3, colnames=c('Sędzia', 'Średnia liczba kontaktów z adwokatami', 'Podłoga z liczby kontaktów', 'Zasługiwanie na pozostawienie na stanowisku'), options = list(searching = FALSE))
+
+```
+
+## Wykres zależności
+
+Poniżej znajduje się wykres zależnośći pomiędzy średnią liczbą widzeń sędziów z adwokatami (zaokrąglaną w dół za pomocą funckji `floor()`) a oceną przez tych adwokatów, czy sędzia zasługuje na pozostanie na stanowisku.
+
+Warto zwrócić uwagę, że wykres jest zielony, są opisy osi oraz po najechaniu na słupek pojawia się tooltip, który w górnej linii **nie** zawiera domyślnych *nawiasów* z parametrami zaznaczonego słupka, np. *(1, 2)*
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE służy temu, aby wszelkie komunikaty nie były wypisywane
+
+# tym razem wstawiamy wykres w plotly'm 
+USJudgeRatings3 %>%
+  group_by(FLOOR_CONT) %>% 
+  summarise(avg_RTEN = round(mean(RTEN),2), n=n()) %>% 
+  plot_ly() %>%
+  add_bars(x = ~floor(FLOOR_CONT), y = ~avg_RTEN, color=I("darkgreen"), # koloru nie mogłam dopasować,jakis patent? :D
+           hoverinfo = 'text',
+           text = ~paste0(
+             "Liczba widzeń: ", FLOOR_CONT,
+             "\nŚrednie zasługiwanie: ", avg_RTEN,
+             "\nLiczba sędziów w grupie: ", n)
+           ) %>%          # i dodajemy wykres słupkowy
+  layout(
+    xaxis = list(title = 'Liczba widzeń z adwokatami'),
+    yaxis = list(title = 'Zasługiwanie na pozostanie na stanowisku', rangemode = "tozero")
+  )
+```
+
