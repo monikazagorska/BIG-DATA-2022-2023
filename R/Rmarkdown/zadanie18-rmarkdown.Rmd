@@ -1,0 +1,73 @@
+---
+title: "Zadanie"
+output:
+  html_document: default
+  pdf_document: default
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# tutaj jest dobre miejsce na załadowanie potrzebnych pakietów
+
+library(DT)
+library(magrittr)
+library(tidyverse)
+library(dplyr)
+library(plotly)
+
+```
+
+
+# Zadanie
+
+Korzystając ze zbioru __mtcars__, przygotuj dokument podobny do tego w 04_rmarkdown_03_zadanie_Wzor.html. 
+
+# Samochody
+
+## Podział w zależności od rodzaju skrzyni biegów
+Automatyczną skrzynię biegów mają:
+**`r (mtcars %>% tibble::rownames_to_column('Model') %>% as_tibble() %>% select(Model,am) %>% filter(am ==0) %>% transmute(Model))$Model`.**
+    
+
+***
+Ręczną skrzynię biegów mają:
+**`r (mtcars %>% tibble::rownames_to_column('Model') %>% as_tibble() %>% select(Model,am) %>% filter(am ==1) %>% transmute(Model))$Model`.**  
+
+## Średni czas na ćwierć mili zależnie od rodzaju skrzyni biegów
+
+```{r pressure, echo=FALSE}
+# message=FALSE, warning=FALSE służy temu, aby wszelkie komunikaty nie były wypisywane
+
+# tym razem wstawiamy wykres w plotly'm 
+data = mtcars %>% 
+  tibble::rownames_to_column('Model') %>%
+  tibble::as_tibble() 
+
+data_plot = data %>%
+  select(qsec, am) %>% 
+  mutate(am_text = 
+           case_when(
+             am == 0 ~ 'automatic',
+             am == 1 ~ 'manual')) %>% 
+  group_by(am_text) %>% 
+  summarise(avg_qsec = mean(qsec), n=n()) %>%  
+  plot_ly() %>%
+  add_bars(x = ~ am_text, y = ~avg_qsec, color=I("blue")) %>%          # i dodajemy wykres słupkowy
+  layout(
+    xaxis = list(title = 'Transmission type'),
+    yaxis = list(title = 'Avg. 1/4 mile time'))
+data_plot
+```
+
+# Surowe dane
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+# a tutaj wstawiamy interaktywną tabelkę korzystając z DT::datatable()
+
+data = mtcars %>% 
+  tibble::rownames_to_column('Model') %>%
+  tibble::as_tibble() 
+
+datatable(data,
+          colnames=c('', 'mpg', 'cyl', 'disp', 'hp', 'drat', 'wt', 'qsec', 'vs', 'am', 'gear', 'carb'),
+          options = list(searching = TRUE))
